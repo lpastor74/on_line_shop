@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/rmq_service" name="RbtAMQ" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST" url-mapping="/inbound/create">
+        <inSequence>
+            <enrich>
+                <source clone="true" type="body"/>
+                <target property="REQUEST_PAYLOAD" type="property"/>
+            </enrich>
+            <property expression="//msg/action/text()" name="ACTION" scope="default" type="STRING" xmlns:ns="http://org.apache.synapse/xsd"/>
+            <property expression="//msg/QueueName/text()" name="QUEUE_NAME" scope="default" type="STRING" xmlns:ns="http://org.apache.synapse/xsd"/>
+            <property expression="//msg/ExchangeName/text()" name="EXCHANGE_NAME" scope="default" type="STRING" xmlns:ns="http://org.apache.synapse/xsd"/>
+            <property expression="//msg/SeqName/text()" name="SEGUENCE_NAME" scope="default" type="STRING" xmlns:ns="http://org.apache.synapse/xsd"/>
+            <property expression="//msg/ErrorSeqName/text()" name="ERROR_SEQ_NAME" scope="default" type="STRING" xmlns:ns="http://org.apache.synapse/xsd"/>
+            <property expression="//msg/EndPointName/text()" name="ENDPOINT_NAME" scope="default" type="STRING" xmlns:ns="http://org.apache.synapse/xsd"/>
+            <log level="custom">
+                <property name=".....::::::::::::::::  calling API ::::::::::::::::....." value=" RbtMQ_Service - create InboundPoint "/>
+                <property expression="$ctx:REQUEST_PAYLOAD" name="REQUEST" xmlns:ns="http://org.apache.synapse/xsd"/>
+                <property expression="fn:concat('PARAMS  = ' ,$ctx:ACTION,' ,',$ctx:QUEUE_NAME,' ,',$ctx:EXCHANGE_NAME,' ,',$ctx:SEGUENCE_NAME,' ,',$ctx:ERROR_SEQ_NAME,' ,',$ctx:ENDPOINT_NAME)" name="info"/>
+            </log>
+            <property action="remove" name="REST_URL_POSTFIX" scope="axis2"/>
+            <payloadFactory media-type="xml">
+                <format>
+                    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://org.apache.axis2/xsd" xmlns:xsd1="http://inbound.carbon.wso2.org/xsd">
+                        <soapenv:Header/>
+                        <soapenv:Body>
+                            <xsd:getInboundEndpointbyName>
+                                <xsd:endointName>$1</xsd:endointName>
+                            </xsd:getInboundEndpointbyName>
+                        </soapenv:Body>
+                    </soapenv:Envelope>
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:ENDPOINT_NAME"/>
+                </args>
+            </payloadFactory>
+            <property name="PRESERVE_WS_ADDRESSING" scope="default" type="STRING" value="true"/>
+            <property name="DISABLE_CHUNKING" scope="axis2" type="STRING" value="true"/>
+            <property name="ContentType" scope="axis2" type="STRING" value="text/xml"/>
+            <property name="SOAPAction" scope="transport" type="STRING" value="urn:getInboundEndpointbyName"/>
+            <header name="authorization" scope="transport" value="Basic YWRtaW46YWRtaW4="/>
+            <property name="messageType" scope="axis2" type="STRING" value="application/xml"/>
+            <call>
+                <endpoint>
+                    <address format="soap11" uri="https://localhost:9463/services/InboundAdmin.InboundAdminHttpsSoap11Endpoint">
+                        <suspendOnFailure>
+                            <initialDuration>-1</initialDuration>
+                            <progressionFactor>1</progressionFactor>
+                        </suspendOnFailure>
+                        <markForSuspension>
+                            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                        </markForSuspension>
+                    </address>
+                </endpoint>
+            </call>
+            <property expression="boolean(//ns:return/@xsi:nil = 'true')" name="INBOUND_NULL" scope="default" type="STRING" xmlns:ns="http://org.apache.axis2/xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+            <log level="custom">
+                <property expression="$ctx:INBOUND_NULL" name="POINT2" xmlns:ns="http://org.apache.synapse/xsd"/>
+            </log>
+            <filter xpath="$ctx:INBOUND_NULL='true'">
+                <then>
+                    <log level="custom">
+                        <property name="--------------- INBOUND_POINT_NOT_EXIST ---------------------" value="create one"/>
+                    </log>
+                    <property action="remove" name="REST_URL_POSTFIX" scope="axis2"/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://org.apache.axis2/xsd" xmlns:xsd1="http://inbound.carbon.wso2.org/xsd">
+                                <soapenv:Header/>
+                                <soapenv:Body>
+                                    <xsd:addInboundEndpoint>
+                                        <xsd:name>$5</xsd:name>
+                                        <xsd:sequence>$3</xsd:sequence>
+                                        <xsd:onError>$4</xsd:onError>
+                                        <xsd:protocol>rabbitmq</xsd:protocol>
+                                        <xsd:suspend>false</xsd:suspend>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>sequential</xsd1:name>
+                                            <xsd1:value>true</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>coordination</xsd1:name>
+                                            <xsd1:value>true</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>rabbitmq.connection.factory</xsd1:name>
+                                            <xsd1:value>AMQPConnectionFactory</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>rabbitmq.server.host.name</xsd1:name>
+                                            <xsd1:value>localhost</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>rabbitmq.server.port</xsd1:name>
+                                            <xsd1:value>5672</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>rabbitmq.server.user.name</xsd1:name>
+                                            <xsd1:value>guest</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>rabbitmq.server.password</xsd1:name>
+                                            <xsd1:value>guest</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>rabbitmq.queue.name</xsd1:name>
+                                            <xsd1:value>$1</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>rabbitmq.exchange.name</xsd1:name>
+                                            <xsd1:value>$2</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>rabbitmq.connection.ssl.enabled</xsd1:name>
+                                            <xsd1:value>false</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>rabbitmq.message.content.type</xsd1:name>
+                                            <xsd1:value>application/json</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                        <xsd:lParameterDTOs>
+                                            <xsd1:name>rabbitmq.queue.durable</xsd1:name>
+                                            <xsd1:value>true</xsd1:value>
+                                        </xsd:lParameterDTOs>
+                                    </xsd:addInboundEndpoint>
+                                </soapenv:Body>
+                            </soapenv:Envelope>
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:QUEUE_NAME"/>
+                            <arg evaluator="xml" expression="$ctx:EXCHANGE_NAME"/>
+                            <arg evaluator="xml" expression="$ctx:SEGUENCE_NAME"/>
+                            <arg evaluator="xml" expression="$ctx:ERROR_SEQ_NAME"/>
+                            <arg evaluator="xml" expression="$ctx:ENDPOINT_NAME"/>
+                        </args>
+                    </payloadFactory>
+                    <property name="PRESERVE_WS_ADDRESSING" scope="default" type="STRING" value="true"/>
+                    <property name="DISABLE_CHUNKING" scope="axis2" type="STRING" value="true"/>
+                    <property name="ContentType" scope="axis2" type="STRING" value="text/xml"/>
+                    <property name="SOAPAction" scope="transport" type="STRING" value="urn:addInboundEndpoint"/>
+                    <header name="authorization" scope="transport" value="Basic YWRtaW46YWRtaW4="/>
+                    <property name="messageType" scope="axis2" type="STRING" value="application/xml"/>
+                    <call>
+                        <endpoint>
+                            <address format="soap11" uri="https://localhost:9463/services/InboundAdmin.InboundAdminHttpsSoap11Endpoint">
+                                <suspendOnFailure>
+                                    <initialDuration>-1</initialDuration>
+                                    <progressionFactor>1</progressionFactor>
+                                </suspendOnFailure>
+                                <markForSuspension>
+                                    <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                                </markForSuspension>
+                            </address>
+                        </endpoint>
+                    </call>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://org.apache.axis2/xsd" xmlns:xsd1="http://inbound.carbon.wso2.org/xsd">
+                                <soapenv:Header/>
+                                <soapenv:Body>
+                                    <xsd:getInboundEndpointbyName>
+                                        <xsd:endointName>$1</xsd:endointName>
+                                        <xsd:status>CREATED</xsd:status>
+                                    </xsd:getInboundEndpointbyName>
+                                </soapenv:Body>
+                            </soapenv:Envelope>
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:ENDPOINT_NAME"/>
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <log level="custom">
+                        <property name="--------------- Already exist---------------------" value="skip it"/>
+                    </log>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://org.apache.axis2/xsd" xmlns:xsd1="http://inbound.carbon.wso2.org/xsd">
+                                <soapenv:Header/>
+                                <soapenv:Body>
+                                    <xsd:getInboundEndpointbyName>
+                                        <xsd:endointName>$1</xsd:endointName>
+                                        <xsd:status>ALREADY EXIST</xsd:status>
+                                    </xsd:getInboundEndpointbyName>
+                                </soapenv:Body>
+                            </soapenv:Envelope>
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:ENDPOINT_NAME"/>
+                        </args>
+                    </payloadFactory>
+                </else>
+            </filter>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence/>
+    </resource>
+</api>

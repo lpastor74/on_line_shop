@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="AMQPProxyIS" startOnLoad="true" transports="rabbitmq" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <endpoint>
+            <address uri="rabbitmq:/AMQPConnectionFactory?rabbitmq.server.host.name=localhost&amp;rabbitmq.server.port=5672&amp;rabbitmq.server.user.name=guest&amp;rabbitmq.server.password=guest&amp;rabbitmq.queue.name=queue2&amp;rabbitmq.exchange.name=exchange2">
+                <suspendOnFailure>
+                    <initialDuration>-1</initialDuration>
+                    <progressionFactor>1</progressionFactor>
+                </suspendOnFailure>
+                <markForSuspension>
+                    <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                </markForSuspension>
+            </address>
+        </endpoint>
+        <inSequence>
+            <log level="full"/>
+            <property name="OUT_ONLY" scope="default" type="STRING" value="true"/>
+            <property name="FORCE_SC_ACCEPTED" scope="axis2" type="STRING" value="true"/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence/>
+    </target>
+    <parameter name="rabbitmq.exchange.name">exchange1</parameter>
+    <parameter name="rabbitmq.queue.name">queue1</parameter>
+    <parameter name="rabbitmq.connection.factory">AMQPConnectionFactory</parameter>
+</proxy>

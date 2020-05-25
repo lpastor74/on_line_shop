@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="parseOrders" onError="amqpErrorSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="custom">
+        <property name=".....::::::::::::::::  PARSING Ordes from DB SEQ START::::::::::::::::....." value="#"/>
+    </log>
+    <fileconnector.read>
+        <source>file:///Users/laslopastor/Downloads/dummy/in.xml</source>
+        <contentType>application/xml</contentType>
+        <filePattern>*.xml</filePattern>
+    </fileconnector.read>
+    <property expression="//TopicName/text()" name="configValue" scope="default" type="STRING" xmlns:ns="http://org.apache.synapse/xsd"/>
+    <log level="custom">
+        <property expression="$ctx:configValue" name="INFO" xmlns:ns="http://org.apache.synapse/xsd"/>
+    </log>
+    <call blocking="true">
+        <endpoint>
+            <http method="get" uri-template="http://localhost:8290/services/OnLineStore/Headers">
+                <suspendOnFailure>
+                    <initialDuration>-1</initialDuration>
+                    <progressionFactor>1</progressionFactor>
+                </suspendOnFailure>
+                <markForSuspension>
+                    <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                </markForSuspension>
+            </http>
+        </endpoint>
+    </call>
+    <enrich>
+        <source clone="true" type="body"/>
+        <target property="SHIPPING_ORDER" type="property"/>
+    </enrich>
+    <log>
+        <property expression="$ctx:SHIPPING_ORDER" name="SHIPPING_ORDER_LIST" xmlns:ns="http://org.apache.synapse/xsd"/>
+    </log>
+    <filter xmlns:m0="http://org.apache.synapse/xsd" xmlns:ns="http://org.apache.synapse/xsd" xpath="//m0:ShippingList/m0:Order">
+        <then/>
+        <else>
+            <payloadFactory media-type="xml">
+                <format>
+                    <info>
+                        <status>No order to parse </status>
+                    </info>
+                </format>
+                <args/>
+            </payloadFactory>
+            <property name="messageType" scope="axis2" type="STRING" value="application/xml"/>
+            <respond/>
+        </else>
+    </filter>
+    <iterate expression="//m0:ShippingList/m0:Order" id="first" xmlns:m0="http://org.apache.synapse/xsd" xmlns:ns="http://org.apache.synapse/xsd">
+        <target>
+            <sequence>
+                <log level="custom">
+                    <property name="STEP" value="Order Iteration"/>
+                </log>
+                <property expression="//m0:Order/m0:no/text()" name="OrderNo" scope="default" type="STRING"/>
+                <property expression="//m0:ship_to/text()" name="SHIP_TO" scope="default" type="STRING"/>
+                <property expression="//m0:customer_id/text()" name="CUSTOMER_ID" scope="default" type="STRING"/>
+                <property expression="//m0:customer_name/text()" name="CUSTOMER_NAME" scope="default" type="STRING"/>
+                <log level="custom">
+                    <property expression="fn:concat('ShipTo = ' ,$ctx:SHIP_TO, '  customer id= ',$ctx:CUSTOMER_ID)" name="info"/>
+                </log>
+                <iterate attachPath="$body" continueParent="true" expression="//m0:OrderLine" id="seccond" preservePayload="true">
+                    <target>
+                        <sequence>
+                            <log level="full">
+                                <property name="STEP" value="Order Line Iterate"/>
+                            </log>
+                            <property expression="//m0:product_id/text()" name="PRODUCT_ID" scope="default" type="STRING"/>
+                            <property expression="//m0:product_name/text()" name="PRODUCT_NAME" scope="default" type="STRING"/>
+                            <property expression="//m0:qty/text()" name="QTY" scope="default" type="STRING"/>
+                            <log level="custom">
+                                <property expression="fn:concat('product id  = ' ,$ctx:PRODUCT_ID,'  qty= ',$ctx:QTY)" name="info"/>
+                            </log>
+                            <payloadFactory media-type="json">
+                                <format>
+					                       {
+												"customer_id": "$1",
+												"customer_name": "$4",
+												"purchaseProduct": {
+													"product_id": "$2",
+													"product_name": "$5",
+													"qty": "$3"
+												}
+											}
+                    				</format>
+                                <args>
+                                    <arg evaluator="xml" expression="$ctx:CUSTOMER_ID"/>
+                                    <arg evaluator="xml" expression="$ctx:PRODUCT_ID"/>
+                                    <arg evaluator="xml" expression="$ctx:QTY"/>
+                                    <arg evaluator="xml" expression="$ctx:CUSTOMER_NAME"/>
+                                    <arg evaluator="xml" expression="$ctx:PRODUCT_NAME"/>
+                                </args>
+                            </payloadFactory>
+                            <sequence key="innerIteration"/>
+                            <log level="full">
+                                <property name=".....:ReturnFromRabbitMQ:....." value="innerIteration sequence"/>
+                            </log>
+                        </sequence>
+                    </target>
+                </iterate>
+                <log level="full">
+                    <property name=".....:BEFORE AGGERGATOR :....." value="inof"/>
+                </log>
+                <aggregate id="seccond">
+                    <completeCondition>
+                        <messageCount max="-1" min="-1"/>
+                    </completeCondition>
+                    <onComplete expression="//msi:info/msi:status" xmlns:msi="http://ws.apache.org/ns/demo">
+                        <log level="custom">
+                            <property name=".....:IN INNER AGGERAGTOR :....." value="second"/>
+                        </log>
+                    </onComplete>
+                </aggregate>
+                <property expression="$ctx:OrderNo" name="uri.var.temp" scope="default" type="STRING"/>
+                <log level="full">
+                    <property name=".....INNER ITERATION END ....." value="second"/>
+                    <property expression="$ctx:uri.var.temp" name="Temp"/>
+                </log>
+                <call>
+                    <endpoint>
+                        <http method="get" uri-template="http://localhost:8290/services/OnLineStore/updateOrder?orderNo={uri.var.temp}">
+                            <suspendOnFailure>
+                                <initialDuration>-1</initialDuration>
+                                <progressionFactor>1</progressionFactor>
+                            </suspendOnFailure>
+                            <markForSuspension>
+                                <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                            </markForSuspension>
+                        </http>
+                    </endpoint>
+                </call>
+                <log level="custom">
+                    <property name=".....UPDATE  END ....." value="second"/>
+                </log>
+            </sequence>
+        </target>
+    </iterate>
+    <log level="full">
+        <property name=".....:BEFORE LAST AGGERGATOR :....." value="info"/>
+    </log>
+    <aggregate id="first">
+        <completeCondition>
+            <messageCount max="-1" min="-1"/>
+        </completeCondition>
+        <onComplete expression="//msa:UpdatedRowCount" xmlns:msa="http://ws.wso2.org/dataservice" xmlns:ns="http://org.apache.synapse/xsd">
+            <log level="custom"/>
+        </onComplete>
+    </aggregate>
+    <filter regex="true" source="get-property('ErrorComparator')" xmlns:ns="http://org.apache.synapse/xsd">
+        <then>
+            <log>
+                <property name="Validation Failure" value="True"/>
+            </log>
+            <drop/>
+        </then>
+        <else>
+            <log>
+                <property name="Validation Failure" value="False"/>
+            </log>
+        </else>
+    </filter>
+</sequence>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="innerIteration" onError="amqpErrorSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="full">
+        <property name=".....::::::::::::::::  sending message to MQ  ::::::::::::::::....." value="#"/>
+    </log>
+    <property name="OUT_ONLY" scope="default" type="STRING" value="true"/>
+    <header expression="fn:concat('rabbitmq:/','AMQPConnectionFactory?rabbitmq.server.host.name=localhost&amp;rabbitmq.server.port=5672&amp;rabbitmq.server.user.name=guest&amp;rabbitmq.queue.name=',$ctx:SHIP_TO,'&amp;rabbitmq.exchange.name=',$ctx:configValue,'&amp;rabbitmq.server.password=guest' )" name="To" scope="default" xmlns:ns="http://org.apache.synapse/xsd"/>
+    <call>
+        <endpoint>
+            <default>
+                <suspendOnFailure>
+                    <initialDuration>0</initialDuration>
+                    <progressionFactor>1.0</progressionFactor>
+                    <maximumDuration>0</maximumDuration>
+                </suspendOnFailure>
+                <markForSuspension>
+                    <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                </markForSuspension>
+            </default>
+        </endpoint>
+    </call>
+    <payloadFactory media-type="xml">
+        <format>
+            <info xmlns="http://ws.apache.org/ns/demo">
+                <status>message send</status>
+            </info>
+        </format>
+        <args/>
+    </payloadFactory>
+</sequence>

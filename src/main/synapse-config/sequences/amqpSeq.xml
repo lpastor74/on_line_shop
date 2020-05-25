@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="amqpSeq" onError="amqpErrorSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="custom">
+        <property name=".....::::::::::::::::  amqpSeq ::::::::::::::::....." value="START"/>
+    </log>
+    <property expression="//command/clientID/text()" name="uri.var.client.id" scope="default" type="STRING"/>
+    <property expression="//command/clientID/text()" name="CLIENT_ID" scope="transport" type="STRING" xmlns:ns="http://org.apache.synapse/xsd"/>
+    <call blocking="true">
+        <endpoint>
+            <http method="get" uri-template="http://localhost:8290/mock/cconfig/client?id={uri.var.client.id}">
+                <suspendOnFailure>
+                    <initialDuration>-1</initialDuration>
+                    <progressionFactor>-1</progressionFactor>
+                    <maximumDuration>0</maximumDuration>
+                </suspendOnFailure>
+                <markForSuspension>
+                    <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                </markForSuspension>
+            </http>
+        </endpoint>
+    </call>
+    <enrich>
+        <source clone="true" type="body"/>
+        <target property="CONFIGURATION_RESPONCE" type="property"/>
+    </enrich>
+    <property expression="//enabledIntegration/text()" name="INTEGRATION" scope="default" type="STRING"/>
+    <filter xpath="$ctx:INTEGRATION='true'">
+        <then>
+            <log level="custom">
+                <property name="------------------------------------ INTEGRATION CHECK -----------------------------------" value="succeed, continue wiht flow"/>
+            </log>
+            <property expression="//sequence/text()" name="SEQUENCE" scope="default" type="STRING"/>
+            <filter xpath="$ctx:SEQUENCE='amqpSeq'">
+                <then>
+                    <log level="custom">
+                        <property name="------------------------------------  SEQUENCE CHECK -------------------------------------" value="amqpSeq sequence initiated"/>
+                    </log>
+                    <iterate expression="//purchaseProducts">
+                        <target>
+                            <sequence>
+                                <property expression="//product/text()" name="prName" scope="default" type="STRING"/>
+                                <log level="custom">
+                                    <property expression="$ctx:prName" name="------------------------------------ SENDING PRODUCT -------------------------------------"/>
+                                </log>
+                                <call>
+                                    <endpoint>
+                                        <http method="post" uri-template="http://localhost:8290/mock/product">
+                                            <suspendOnFailure>
+                                                <initialDuration>-1</initialDuration>
+                                                <progressionFactor>1</progressionFactor>
+                                            </suspendOnFailure>
+                                            <markForSuspension>
+                                                <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                                            </markForSuspension>
+                                        </http>
+                                    </endpoint>
+                                </call>
+                            </sequence>
+                        </target>
+                    </iterate>
+                    <property name="info" scope="default">
+                        <ns:BillingInfo xmlns:ns="www.wso2.com"/>
+                    </property>
+                    <aggregate>
+                        <completeCondition>
+                            <messageCount max="-1" min="-1"/>
+                        </completeCondition>
+                        <onComplete enclosingElementProperty="info" expression="//invoice" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                            <log level="full"/>
+                            <send/>
+                        </onComplete>
+                    </aggregate>
+                </then>
+                <else>
+                    <log level="custom">
+                        <property name="------------------------------------SEQUENCE CHECK-------------------------------------" value="custom sequence initiated"/>
+                    </log>
+                    <sequence key="{//sequence/text()}"/>
+                </else>
+            </filter>
+        </then>
+        <else>
+            <log level="custom">
+                <property name="------------------------------------INTEGRATION CHECK-------------------------------------" value="not enabled, drop the call"/>
+            </log>
+        </else>
+    </filter>
+</sequence>

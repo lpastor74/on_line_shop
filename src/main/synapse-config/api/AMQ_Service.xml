@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/amq_service" name="AMQ_Service" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST" url-mapping="/queue/create">
+        <inSequence>
+            <property action="remove" name="REST_URL_POSTFIX" scope="axis2"/>
+            <payloadFactory media-type="xml">
+                <format>
+                    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://org.apache.axis2/xsd" xmlns:xsd1="http://inbound.carbon.wso2.org/xsd">
+                        <soapenv:Header/>
+                        <soapenv:Body>
+                            <xsd:addInboundEndpoint>
+                                <xsd:name>$5</xsd:name>
+                                <xsd:sequence>$3</xsd:sequence>
+                                <xsd:onError>$4</xsd:onError>
+                                <xsd:protocol>rabbitmq</xsd:protocol>
+                                <xsd:suspend>false</xsd:suspend>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>sequential</xsd1:name>
+                                    <xsd1:value>true</xsd1:value>
+                                </xsd:lParameterDTOs>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>coordination</xsd1:name>
+                                    <xsd1:value>true</xsd1:value>
+                                </xsd:lParameterDTOs>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>rabbitmq.connection.factory</xsd1:name>
+                                    <xsd1:value>AMQPConnectionFactory</xsd1:value>
+                                </xsd:lParameterDTOs>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>rabbitmq.server.host.name</xsd1:name>
+                                    <xsd1:value>localhost</xsd1:value>
+                                </xsd:lParameterDTOs>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>rabbitmq.server.port</xsd1:name>
+                                    <xsd1:value>5675</xsd1:value>
+                                </xsd:lParameterDTOs>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>rabbitmq.server.user.name</xsd1:name>
+                                    <xsd1:value>guest</xsd1:value>
+                                </xsd:lParameterDTOs>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>rabbitmq.server.password</xsd1:name>
+                                    <xsd1:value>guest</xsd1:value>
+                                </xsd:lParameterDTOs>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>rabbitmq.queue.name</xsd1:name>
+                                    <xsd1:value>$1</xsd1:value>
+                                </xsd:lParameterDTOs>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>rabbitmq.exchange.name</xsd1:name>
+                                    <xsd1:value>$2</xsd1:value>
+                                </xsd:lParameterDTOs>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>rabbitmq.connection.ssl.enabled</xsd1:name>
+                                    <xsd1:value>false</xsd1:value>
+                                </xsd:lParameterDTOs>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>rabbitmq.message.content.type</xsd1:name>
+                                    <xsd1:value>application/json</xsd1:value>
+                                </xsd:lParameterDTOs>
+                                <xsd:lParameterDTOs>
+                                    <xsd1:name>rabbitmq.queue.durable</xsd1:name>
+                                    <xsd1:value>true</xsd1:value>
+                                </xsd:lParameterDTOs>
+                            </xsd:addInboundEndpoint>
+                        </soapenv:Body>
+                    </soapenv:Envelope>
+                </format>
+                <args>
+                    <arg evaluator="json" expression="$.msg.QueueName"/>
+                    <arg evaluator="json" expression="$.msg.ExchangeName"/>
+                    <arg evaluator="json" expression="$.msg.SeqName"/>
+                    <arg evaluator="json" expression="$.msg.ErrorSeqName"/>
+                    <arg evaluator="json" expression="$.msg.EndPointName"/>
+                </args>
+            </payloadFactory>
+            <log level="full">
+                <property name=".::  API Name ::." value="AMQ_Service"/>
+            </log>
+            <property name="PRESERVE_WS_ADDRESSING" scope="default" type="STRING" value="true"/>
+            <property name="DISABLE_CHUNKING" scope="axis2" type="STRING" value="true"/>
+            <property name="ContentType" scope="axis2" type="STRING" value="text/xml"/>
+            <property name="SOAPAction" scope="transport" type="STRING" value="urn:addInboundEndpoint"/>
+            <header name="authorization" scope="transport" value="Basic YWRtaW46YWRtaW4="/>
+            <property name="messageType" scope="axis2" type="STRING" value="application/xml"/>
+            <call>
+                <endpoint>
+                    <address format="soap11" uri="https://localhost:9453/services/InboundAdmin.InboundAdminHttpsSoap11Endpoint">
+                        <suspendOnFailure>
+                            <initialDuration>-1</initialDuration>
+                            <progressionFactor>1</progressionFactor>
+                        </suspendOnFailure>
+                        <markForSuspension>
+                            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                        </markForSuspension>
+                    </address>
+                </endpoint>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence/>
+    </resource>
+    <resource methods="POST" url-mapping="/queue/ping">
+        <inSequence>
+            <property action="remove" name="REST_URL_POSTFIX" scope="axis2"/>
+            <payloadFactory media-type="xml">
+                <format>
+                    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://org.apache.axis2/xsd" xmlns:xsd1="http://inbound.carbon.wso2.org/xsd">
+                        <soapenv:Header/>
+                        <soapenv:Body>
+                            <xsd:getInboundEndpointbyName>
+                                <!--Optional:-->
+                                <xsd:endointName>$1</xsd:endointName>
+                            </xsd:getInboundEndpointbyName>
+                        </soapenv:Body>
+                    </soapenv:Envelope>
+                </format>
+                <args>
+                    <arg evaluator="json" expression="$.msg.EndPointName"/>
+                </args>
+            </payloadFactory>
+            <log level="full">
+                <property name=".::  API Name ::." value="AMQ_Service"/>
+            </log>
+            <property name="PRESERVE_WS_ADDRESSING" scope="default" type="STRING" value="true"/>
+            <property name="DISABLE_CHUNKING" scope="axis2" type="STRING" value="true"/>
+            <property name="ContentType" scope="axis2" type="STRING" value="text/xml"/>
+            <property name="SOAPAction" scope="transport" type="STRING" value="urn:getInboundEndpointbyName"/>
+            <header name="authorization" scope="transport" value="Basic YWRtaW46YWRtaW4="/>
+            <property name="messageType" scope="axis2" type="STRING" value="application/xml"/>
+            <call>
+                <endpoint>
+                    <address format="soap11" uri="https://localhost:9453/services/InboundAdmin.InboundAdminHttpsSoap11Endpoint">
+                        <suspendOnFailure>
+                            <initialDuration>-1</initialDuration>
+                            <progressionFactor>1</progressionFactor>
+                        </suspendOnFailure>
+                        <markForSuspension>
+                            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                        </markForSuspension>
+                    </address>
+                </endpoint>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence/>
+    </resource>
+</api>

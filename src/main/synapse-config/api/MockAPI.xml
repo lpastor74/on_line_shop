@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/mock" name="MockAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" url-mapping="/cconfig/client">
+        <inSequence>
+            <property expression="$url:id" name="CLIENT_ID" scope="default" type="STRING"/>
+            <log level="custom">
+                <property name="......:::::::::::::::::::  call API Name :::::::::::::::::::......" value="Client Configuration"/>
+                <property expression="$ctx:CLIENT_ID" name=".. param .."/>
+            </log>
+            <switch source="get-property('CLIENT_ID')">
+                <case regex="CLI1">
+                    <payloadFactory media-type="json">
+                        <format>                                         {   "clientID":"$1",                                                 "enabledIntegration":"true",                               "sequence":"amqpSeq",                               "purchaseProducts":[                                  {"product":"OGSVS", "code":"cd1"},                                        {"product":"LAND",  "code":"cd2"},                                    {"product":"WELLEZ","code":"cd3"}                                     ]}                                           </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('CLIENT_ID')"/>
+                        </args>
+                    </payloadFactory>
+                </case>
+                <case regex="CLI3">
+                    <payloadFactory media-type="json">
+                        <format>                         {   "clientID":"$1",                                                 "enabledIntegration":"true",                               "sequence":"spec_amqpSeq",                               "purchaseProducts":[                             {"product":"OGSVS","code":"cd1"},                                        {"product":"WELLEZ","code":"cd2"}                                      ]}                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('CLIENT_ID')"/>
+                        </args>
+                    </payloadFactory>
+                </case>
+                <case regex="CLI5">
+                    <payloadFactory media-type="json">
+                        <format>                         {   "clientID":"$1",                                                 "enabledIntegration":"true",                               "sequence":"amqpSeq",                               "purchaseProducts":[                                                                  {"product":"WELLEZ","code":"cd2"}                                        ]}                         </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('CLIENT_ID')"/>
+                        </args>
+                    </payloadFactory>
+                </case>
+                <case regex="CLI7">
+                    <payloadFactory media-type="json">
+                        <format>                         {   "clientID":"$1",                                                 "enabledIntegration":"false",                               "sequence":"amqpSeq",                               "purchaseProducts":[                                                                  {"product":"WELLEZ","code":"cd2"}                                        ]}                         </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('CLIENT_ID')"/>
+                        </args>
+                    </payloadFactory>
+                </case>
+                <case regex="CLI9">
+                    <payloadFactory media-type="json">
+                        <format>                         {   "clientID":"$1",                                                 "enabledIntegration":"true",                               "sequence":"amqpSeq",                               "purchaseProducts":[                                                                 {"product":"OGSVS","code":"cd1"},  {"product":"WELLEZ2","code":"cd2"}                                        ]}                         </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('CLIENT_ID')"/>
+                        </args>
+                    </payloadFactory>
+                </case>
+                <default>
+                    <payloadFactory media-type="json">
+                        <format>                                         {   "clientID":"$1",                                "enabledIntegration":"false",                               "sequence":"noSeq",                                   "purchaseProducts":[]}                                             </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('CLIENT_ID')"/>
+                        </args>
+                    </payloadFactory>
+                </default>
+            </switch>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence/>
+    </resource>
+    <resource methods="POST" url-mapping="/product">
+        <inSequence>
+            <log level="full"/>
+            <property expression="//product/text()" name="PRODUCT" scope="default" type="STRING"/>
+            <property expression="//code/text()" name="PRODUCT_CODE" scope="default" type="STRING"/>
+            <property expression="get-property('transport','CLIENT_ID')" name="CLIENT_ID" scope="default" type="STRING"/>
+            <log level="custom">
+                <property expression="//product/text()" name="...:::::::::::::: INVOICING PRODUCT ::::::::::::::..."/>
+            </log>
+            <switch source="get-property('PRODUCT')">
+                <case regex="OGSVS">
+                    <script language="js"><![CDATA[mc.setProperty("RndInv",Math.floor(100000 + Math.random() * 900000));]]></script>
+                    <payloadFactory media-type="json">
+                        <format>                                         { "invoice":{  "clientID":"$1",                                                 "productName":"$2",                               "productCode":"$3",                          "invoiceID":"OGSVS-Inv-$4",                         "Status":"OK",                         "ErrorMessage":""  }                     }                                         </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('CLIENT_ID')"/>
+                            <arg evaluator="xml" expression="get-property('PRODUCT')"/>
+                            <arg evaluator="xml" expression="get-property('PRODUCT_CODE')"/>
+                            <arg evaluator="xml" expression="get-property('RndInv')"/>
+                        </args>
+                    </payloadFactory>
+                </case>
+                <case regex="LAND">
+                    <script language="js"><![CDATA[mc.setProperty("RndInv",Math.floor(100000 + Math.random() * 900000));]]></script>
+                    <payloadFactory media-type="json">
+                        <format>                                         {  "invoice":{ "clientID":"$1",                                                 "productName":"$2",                               "productCode":"$3",                          "invoiceID":"LAND-Inv-$4",                         "Status":"OK",                         "ErrorMessage":""  }                     }                                         </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('CLIENT_ID')"/>
+                            <arg evaluator="xml" expression="get-property('PRODUCT')"/>
+                            <arg evaluator="xml" expression="get-property('PRODUCT_CODE')"/>
+                            <arg evaluator="xml" expression="get-property('RndInv')"/>
+                        </args>
+                    </payloadFactory>
+                </case>
+                <case regex="WELLEZ">
+                    <script language="js"><![CDATA[mc.setProperty("RndInv",Math.floor(100000 + Math.random() * 900000));]]></script>
+                    <payloadFactory media-type="json">
+                        <format>                                         {  "invoice":{ "clientID":"$1",                                                 "productName":"$2",                               "productCode":"$3",                          "invoiceID":"WELLEZ-Inv-$4",                         "Status":"OK",                         "ErrorMessage":"" }                      }                                         </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('CLIENT_ID')"/>
+                            <arg evaluator="xml" expression="get-property('PRODUCT')"/>
+                            <arg evaluator="xml" expression="get-property('PRODUCT_CODE')"/>
+                            <arg evaluator="xml" expression="get-property('RndInv')"/>
+                        </args>
+                    </payloadFactory>
+                </case>
+                <default>
+                    <payloadFactory media-type="json">
+                        <format>                                         { "invoice":{  "clientID":"$1",                               "productName":"$2",                               "productCode":"$3",                          "invoiceID":"",                         "Status":"Error",                         "ErrorMessage":"Product not found"                          }   }                                          </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('CLIENT_ID')"/>
+                            <arg evaluator="xml" expression="get-property('PRODUCT')"/>
+                            <arg evaluator="xml" expression="get-property('PRODUCT_CODE')"/>
+                        </args>
+                    </payloadFactory>
+                </default>
+            </switch>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence/>
+    </resource>
+</api>
